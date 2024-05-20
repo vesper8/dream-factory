@@ -34,6 +34,7 @@ from PIL.PngImagePlugin import PngImageFile, PngInfo
 from torch.cuda import get_device_name, device_count
 from scripts.server import ArtServer
 from scripts.sdi import SDI
+from api import start_api
 
 # environment setup
 cwd = os.getcwd()
@@ -75,10 +76,14 @@ class Worker(threading.Thread):
         original_iptc = {}
         original_command = {}
         process_mode = False
-
+        print('!!!')
         if not int(self.command.get('seed')) > 0:
             self.command['seed'] = -1
         else:
+            # Start the REST API server
+            print('wtf')
+            self.print('running custom server')
+            threading.Thread(target=start_api, args=(self,), daemon=True).start()
             # increment seed if we've finished one or more complete loops
             if control.models != []:
                 # multiple models in queue, only increment for each time we use all of them
@@ -1935,7 +1940,8 @@ class Controller:
 
         file = utils.TextFile(self.config_file)
         if file.lines_remaining() > 0:
-            self.print("reading configuration from " + self.config_file + "...")
+            self.print("wowow reading configuration from " + self.config_file + "...")
+            threading.Thread(target=start_api, args=(self,), daemon=True).start()
             while file.lines_remaining() > 0:
                 line = file.next_line()
 
@@ -2558,6 +2564,9 @@ class Controller:
     # loads a new prompt file
     # note that new_file is an absolute path reference
     def new_prompt_file(self, new_file):
+                
+        self.print(f'Loading prompt file: {new_file}')
+        
         # if we haven't validated models/etc, defer loading
         if not self.default_model_validated:
             self.print("Waiting for model initialization to finish before loading requested prompt file...")
